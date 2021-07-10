@@ -27,7 +27,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	var token yauth.AuthToken
+	var token yauth.Token
 	if *refresh != "" {
 		token, err = app.Refresh(*refresh)
 	} else {

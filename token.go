@@ -8,9 +8,9 @@ import (
 	"time"
 )
 
-// AuthToken holds all values nececcary to access
+// Token holds all values nececcary to access
 // Yandex services using Yandex OAuth.
-type AuthToken struct {
+type Token struct {
 	// Access field contains the actual access token
 	Access string `json:"access_token,omitempty"`
 	// Refresh field containes refresh token that
@@ -20,9 +20,9 @@ type AuthToken struct {
 	Expiry time.Time `json:"token_expires,omitempty"`
 }
 
-// OpenAuthToken tries to read filename and parse token values.
-func OpenAuthToken(filename string) (AuthToken, error) {
-	var t AuthToken
+// OpenToken tries to read filename and parse token values.
+func OpenToken(filename string) (Token, error) {
+	var t Token
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return t, err
@@ -32,7 +32,7 @@ func OpenAuthToken(filename string) (AuthToken, error) {
 }
 
 // SaveToFile marshals token to json and writes to filename.
-func (t *AuthToken) SaveToFile(filename string) error {
+func (t *Token) SaveToFile(filename string) error {
 	dir := filepath.Dir(filename)
 	if _, err := os.Stat(dir); err != nil && os.IsNotExist(err) {
 		return err
@@ -44,10 +44,13 @@ func (t *AuthToken) SaveToFile(filename string) error {
 	return os.WriteFile(filename, data, 0644)
 }
 
-func (t *AuthToken) IsValid() bool {
-	return time.Now().Before(t.Expiry)
+func (t *Token) Valid() bool {
+	if t == nil || t.Access == "" || t.Expiry.Before(time.Now()) {
+		return false
+	}
+	return true
 }
 
-func (t *AuthToken) String() string {
+func (t *Token) String() string {
 	return fmt.Sprintf("%s\nexpires on: %s", t.Access, t.Expiry.Format("15:04:05 02 Jan 2006"))
 }

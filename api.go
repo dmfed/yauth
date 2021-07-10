@@ -32,7 +32,7 @@ func (e OAuthAPIError) Error() string {
 	return fmt.Sprintf("%v: %v", e.Err, e.Desc)
 }
 
-type Token struct {
+type OAuthToken struct {
 	TokenType    string `json:"token_type,omitempty"`
 	AccessToken  string `json:"access_token,omitempty"`
 	ExpiresIn    int    `json:"expires_in,omitempty"`
@@ -104,7 +104,7 @@ func fetchAuthorizationCodes(clientID, deviceName string) (codes CodesResponse, 
 
 // fetchOAuthToken polls Yandex OAuth server with interval (in seconds) until device code
 // expiry. It returns Token if successful.
-func fetchOAuthToken(clientID, clientSecret, deviceCode string, interval, expires int) (t Token, err error) {
+func fetchOAuthToken(clientID, clientSecret, deviceCode string, interval, expires int) (t OAuthToken, err error) {
 	expiry := time.NewTimer(time.Duration(expires) * time.Second)
 	retry := time.NewTimer(time.Duration(interval) * time.Second)
 	for {
@@ -120,7 +120,7 @@ func fetchOAuthToken(clientID, clientSecret, deviceCode string, interval, expire
 	}
 }
 
-func requestToken(clientID, clientSecret, deviceCode string) (t Token, err error) {
+func requestToken(clientID, clientSecret, deviceCode string) (t OAuthToken, err error) {
 	v := url.Values{}
 	v.Set("grant_type", "device_code")
 	v.Set("code", deviceCode)
@@ -145,7 +145,7 @@ func requestToken(clientID, clientSecret, deviceCode string) (t Token, err error
 	return
 }
 
-func requestRefreshToken(clientID, clientSecret, refreshToken string) (t Token, err error) {
+func requestRefreshToken(clientID, clientSecret, refreshToken string) (t OAuthToken, err error) {
 	v := url.Values{}
 	v.Set("grant_type", "refresh_token")
 	v.Set("refresh_token", refreshToken)

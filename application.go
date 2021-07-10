@@ -58,7 +58,7 @@ func (app *Application) String() string {
 // any of their devices to authorize application to access its default
 // scope configured with Yandex OAuth.
 // It outputs the URL to follow and code to os.Stdout.
-func (app *Application) RequestUserAuthorization() (token AuthToken, err error) {
+func (app *Application) RequestUserAuthorization() (token Token, err error) {
 	accesstoken, refreshtoken, expires, err := requestUserAuthorization(app.ClientID, app.Secret)
 	if err == nil {
 		token.Access = accesstoken
@@ -70,7 +70,7 @@ func (app *Application) RequestUserAuthorization() (token AuthToken, err error) 
 
 // Refresh connects to Yandex OAuth API,
 // requests new access token and saves it to Application.
-func (app *Application) Refresh(refreshtoken string) (token AuthToken, err error) {
+func (app *Application) Refresh(refreshtoken string) (token Token, err error) {
 	if refreshtoken == "" {
 		return token, fmt.Errorf("refreshtoken can not be empty")
 	}

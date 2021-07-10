@@ -15,10 +15,6 @@ var (
 	tokenURL             = baseURL + "/token"
 )
 
-var (
-// TODO: add format strings for all urls here
-)
-
 type CodesResponse struct {
 	DeviceCode      string `json:"device_code,omitempty"`
 	UserCode        string `json:"user_code,omitempty"`
@@ -44,7 +40,7 @@ type Token struct {
 	Scope        string `json:"scope,omitempty"`
 }
 
-// RequestUserAuthorization accepts application ID and password, requests
+// requestUserAuthorization accepts application ID and password, requests
 // authorization codes for device then tells user in current terminal session
 // to follow authorization link in a browser and enter device code.
 // deviceName is passed to Yandex oauth service if not empty.
@@ -66,7 +62,7 @@ func requestUserAuthorization(clientID, clientSecret string) (accesstoken, refre
 	return
 }
 
-// RenewToken accepts application ID, assword and refresh token and requests
+// renewToken accepts application ID, password and refresh token and requests
 // new access token and refresh token from Yandex oauth service.
 func renewToken(clientID, clientSecret, refreshToken string) (accesstoken, refreshtoken string, expires int, err error) {
 	if refreshToken == "" || clientID == "" || clientSecret == "" {
@@ -82,6 +78,7 @@ func renewToken(clientID, clientSecret, refreshToken string) (accesstoken, refre
 	return
 }
 
+// fetchAuthorizationCodes connects to YAndex OAuth endpoint and requests authorization codes
 func fetchAuthorizationCodes(clientID, deviceName string) (codes CodesResponse, err error) {
 	v := url.Values{}
 	v.Set("client_id", clientID)
@@ -105,6 +102,8 @@ func fetchAuthorizationCodes(clientID, deviceName string) (codes CodesResponse, 
 	return
 }
 
+// fetchOAuthToken polls Yandex OAuth server with interval (in seconds) until device code
+// expiry. It returns Token if successful.
 func fetchOAuthToken(clientID, clientSecret, deviceCode string, interval, expires int) (t Token, err error) {
 	expiry := time.NewTimer(time.Duration(expires) * time.Second)
 	retry := time.NewTimer(time.Duration(interval) * time.Second)
@@ -128,7 +127,6 @@ func requestToken(clientID, clientSecret, deviceCode string) (t Token, err error
 	v.Set("client_id", clientID)
 	v.Set("client_secret", clientSecret)
 	resp, err := http.PostForm(tokenURL, v)
-	// resp, err := http.Post(u, "", nil)
 	if err != nil {
 		return
 	}

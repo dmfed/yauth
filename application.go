@@ -5,37 +5,43 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // Application represents app registered with Yandex OAuth
 type Application struct {
-	ClientID string `json:"client_id,omitempty"`
-	Secret   string `json:"client_secret,omitempty"`
+	ClientID string `json:"client_id"`
+	Secret   string `json:"client_secret"`
 	filename string
 }
 
-// New creates Application with given credentials
-func New(clientID, secret string) (*Application, error) {
+// NewApp creates Application with given credentials
+func NewApp(clientID, secret string) (Application, error) {
 	var app Application
 	var err error
 	if clientID == "" || secret == "" {
 		err = fmt.Errorf("error creating application: id and password can not be empty")
-		return &app, err
+		return app, err
 	}
 	app.ClientID = clientID
 	app.Secret = secret
-	return &app, err
+	return app, err
 }
 
 // OpenApp accepts name of file storing application credentials
-// in JSON format
-func Open(filename string) (*Application, error) {
-	app := &Application{}
+// in JSON format:
+// {
+//    "client_id": "your_app_id",
+//    "client_secret": "your_app_secret"
+// }
+// If credentials were parsed successfully returns Application.
+func OpenApp(filename string) (Application, error) {
+	var app Application
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return app, err
 	}
-	err = json.Unmarshal(data, app)
+	err = json.Unmarshal(data, &app)
 	if err == nil {
 		app.filename = filename
 	}
@@ -50,16 +56,30 @@ func (app *Application) String() string {
 // RequestUserAuthorization connects to Yandex OAuth API, fetches
 // device code and user code and then asks user to follow a link on
 // any of their devices to authorize application to access its default
-// configured scope.
-func (app *Application) RequestUserAuthorization() (accesstoken, refreshtoken string, expires int, err error) {
-	accesstoken, refreshtoken, expires, err = requestUserAuthorization(app.ClientID, app.Secret)
+// scope configured with Yandex OAuth.
+// It outputs the URL to follow and code to os.Stdout.
+func (app *Application) RequestUserAuthorization() (token AuthToken, err error) {
+	accesstoken, refreshtoken, expires, err := requestUserAuthorization(app.ClientID, app.Secret)
+	if err == nil {
+		token.Access = accesstoken
+		token.Refresh = refreshtoken
+		token.Expiry = time.Now().Add(time.Second * time.Duration(expires))
+	}
 	return
 }
 
-// RefreshToken accepts refresh token, connects to Yandex OAuth API,
-// requests new access token and returns it.
-func (app *Application) RefreshToken(refresh string) (accesstoken, refreshtoken string, expires int, err error) {
-	accesstoken, refreshtoken, expires, err = renewToken(app.ClientID, app.Secret, refresh)
+// Refresh connects to Yandex OAuth API,
+// requests new access token and saves it to Application.
+func (app *Application) Refresh(refreshtoken string) (token AuthToken, err error) {
+	if refreshtoken == "" {
+		return token, fmt.Errorf("refreshtoken can not be empty")
+	}
+	access, refresh, expires, err := renewToken(app.ClientID, app.Secret, refreshtoken)
+	if err == nil {
+		token.Access = access
+		token.Refresh = refresh
+		token.Expiry = time.Now().Add(time.Second * time.Duration(expires))
+	}
 	return
 }
 
@@ -67,22 +87,24 @@ func (app *Application) RefreshToken(refresh string) (accesstoken, refreshtoken 
 // to be used after creating app with yauth.New(). If this method returned no
 // error, the App can later be saved with Save() method.
 func (app *Application) SaveToFile(filename string) error {
-	err := saveApptoFile(app, filename)
-	if err == nil {
-		app.filename = filename
-	}
-	return err
+	return saveApptoFile(app, filename)
 }
 
-// Save saves application to the same file from which it was read with yauth.Open()
-// function.
+// Save saves Application state to disk. If will return error if
+// Application was just created (not opened with Open). Use SaveToFile method
+// to save your app for the first time.
 func (app *Application) Save() error {
+	if app.filename == "" {
+		return fmt.Errorf("app filename unknown. use SaveToFile method")
+	}
 	return saveApptoFile(app, app.filename)
 }
 
 func saveApptoFile(app *Application, filename string) error {
 	dir := filepath.Dir(filename)
-	os.MkdirAll(dir, 0755)
+	if _, err := os.Stat(dir); err != nil && os.IsNotExist(err) {
+		return err
+	}
 	data, err := json.MarshalIndent(app, "", "    ")
 	if err != nil {
 		return err

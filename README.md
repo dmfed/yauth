@@ -81,7 +81,7 @@ if err == nil {
 }
 ```
 
-Example cli appcan be found in **example** directory of the repository.
+Example cli app can be found in **example** directory of the repository.
 
 Any suggestions are most welcome. 
 

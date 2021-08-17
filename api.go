@@ -106,14 +106,14 @@ func fetchAuthorizationCodes(clientID, deviceName string) (codes CodesResponse, 
 // expiry. It returns Token if successful.
 func fetchOAuthToken(clientID, clientSecret, deviceCode string, interval, expires int) (t OAuthToken, err error) {
 	expiry := time.NewTimer(time.Duration(expires) * time.Second)
-	retry := time.NewTimer(time.Duration(interval) * time.Second)
+	retry := time.NewTicker(time.Duration(interval) * time.Second)
 	for {
 		select {
 		case <-expiry.C:
 			return
 		case <-retry.C:
-			retry.Reset(time.Duration(interval) * time.Second)
-			if t, err = requestToken(clientID, clientSecret, deviceCode); err == nil {
+			t, err = requestToken(clientID, clientSecret, deviceCode)
+			if err == nil {
 				return
 			}
 		}

@@ -110,6 +110,7 @@ func fetchOAuthToken(clientID, clientSecret, deviceCode string, interval, expire
 	for {
 		select {
 		case <-expiry.C:
+			err = fmt.Errorf("authorization session timed out")
 			return
 		case <-retry.C:
 			t, err = requestToken(clientID, clientSecret, deviceCode)
